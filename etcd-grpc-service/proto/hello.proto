@@ -1,0 +1,16 @@
+syntax = "proto3";
+package proto;
+
+service HelloEtcd {
+    rpc SayHello (NameRequest) returns (BaseResponse);
+}
+
+message BaseResponse {
+    int32 code = 1;
+    string message = 2;
+    string error = 3;
+}
+
+message NameRequest {
+    string name = 1;
+}
