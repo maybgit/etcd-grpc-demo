@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"strings"
@@ -17,16 +18,25 @@ import (
 	"google.golang.org/grpc/naming"
 )
 
+var (
+	ServiceAddr string //服务地址
+)
+
+func init() {
+	flag.StringVar(&ServiceAddr, "addr", "", "-addr=xxx.xxx.xxx.xxx:prot")
+}
+
 func main() {
+	flag.Parse()
+	println(ServiceAddr)
 	serviceName := "etcd-grpc-service" //服务名称
-	serviceAddr := "10.1.1.54:100"     //服务地址
 
 	cli, err := clientv3.NewFromURL("http://10.1.1.248:2379") //连接etcd服务
 	if err != nil {
 		fmt.Println(err)
 	}
 	r := &etcdnaming.GRPCResolver{Client: cli}
-	r.Update(context.TODO(), serviceName, naming.Update{Op: naming.Add, Addr: serviceAddr}) //服务注册
+	r.Update(context.TODO(), serviceName, naming.Update{Op: naming.Add, Addr: ServiceAddr}) //服务注册
 
 	//启动grpc服务
 	mux := http.NewServeMux()
@@ -34,7 +44,7 @@ func main() {
 	proto.RegisterHelloEtcdServer(server, &services.HelloEtcd{})
 
 	//启动grpc服务
-	if err := http.ListenAndServe(serviceAddr, func() http.Handler {
+	if err := http.ListenAndServe(ServiceAddr, func() http.Handler {
 		return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
 				server.ServeHTTP(w, r)
